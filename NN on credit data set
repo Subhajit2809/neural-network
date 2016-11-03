@@ -1,0 +1,42 @@
+rm(list=ls())
+
+setwd("E:/data")
+
+creditset <- read.csv("creditset.csv")
+
+head(creditset)
+nrow(creditset)
+
+set.seed(1)
+library(caret)
+train<-createDataPartition(creditset$default10yr, list=FALSE,times=1,p=0.5)
+
+creditset.train <- creditset[train,]
+creditset.test <- creditset[-train,]
+
+library(neuralnet)
+creditset.neural <- neuralnet(default10yr ~ LTI + age, 
+                      creditset.train, hidden = 4, 
+                      lifesign = "minimal", 
+                      linear.output = FALSE, threshold = 0.1)
+
+attributes(creditset.neuralnet)
+plot(creditset.neural)
+
+testsubset <- subset(creditset.test, select=c("LTI", "age"))
+
+creditsetpred.test <- compute(creditset.neural, testsubset)
+
+attributes(creditsetpred.test)
+creditsetpred.test$neurons
+creditsetpred.test$net.result
+
+
+results <- data.frame(actual = creditset.test$default10yr, 
+                      prediction = creditsetpred.test$net.result)
+
+library(SDMTools)
+confusion.matrix(creditset.test$default10yr, creditsetpred.test$net.result)
+
+library(pROC)
+roc(creditset.test$default10yr, creditsetpred.test$net.result)
